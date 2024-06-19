@@ -32,6 +32,7 @@
               <th>Importe pagado</th>
               <th>Importe debido</th>
               <th>Editar</th>
+              <th>Eliminar</th>
             </tr>
           </thead>
           <tbody>
@@ -47,6 +48,12 @@
                 <button @click="editcustomer(value.id)" type="button"
                   class="btn bg-blue btn-circle waves-effect waves-circle waves-float">
                   <i class="material-icons">edit</i>
+                </button>
+              </td>
+              <td>
+                <button @click="deleteCategory(value.id)" type="button"
+                  class="btn bg-pink btn-circle waves-effect waves-circle waves-float">
+                  <i class="material-icons">delete</i>
                 </button>
               </td>
             </tr>

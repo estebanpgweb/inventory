@@ -123,11 +123,8 @@ class StockController extends Controller
       $request->validate([
 
         'product' => 'required',
-        'vendor' => 'required',
         'category' => 'required',
         'quantity' => 'required|integer',
-        'buying_price' => 'required|regex:/^[0-9]+(\.[0-9][0-9]?)?$/',
-        'selling_price' => 'required|regex:/^[0-9]+(\.[0-9][0-9]?)?$/',
 
       ]);
 
@@ -141,8 +138,6 @@ class StockController extends Controller
         $stock->product_code = time();
         $stock->vendor_id = $request->vendor;
         $stock->user_id = Auth::user()->id;
-        $stock->buying_price = $request->buying_price;
-        $stock->selling_price = $request->selling_price;
         $stock->chalan_no = date('Y-m-d');
         $stock->stock_quantity = $request->quantity;
         $stock->current_quantity = $request->quantity;
@@ -152,8 +147,7 @@ class StockController extends Controller
         $stock->save();
 
         Stock::where('product_id','=',$request->product)
-        ->where('current_quantity','>',0)
-        ->update(['selling_price'=>$request->selling_price]);
+        ->where('current_quantity','>',0);
 
         return response()->json(['status'=>'success','message'=>'Producto añadido a existencias']);
 
@@ -211,8 +205,7 @@ class StockController extends Controller
       'category'=>'required',
       'product'=>'required',
       'vendor'=>'required',
-      'buying_price'=>'required|regex:/^[0-9]+(\.[0-9][0-9]?)?$/',
-      'selling_price'=>'required|regex:/^[0-9]+(\.[0-9][0-9]?)?$/',
+
     ]);
 
 
@@ -221,8 +214,6 @@ class StockController extends Controller
       $stock->category_id = $request->category;
       $stock->product_id = $request->product;
       $stock->vendor_id = $request->vendor;
-      $stock->buying_price = $request->buying_price;
-      $stock->selling_price = $request->selling_price;
       $stock->note = $request->note;
       $stock->update();
 

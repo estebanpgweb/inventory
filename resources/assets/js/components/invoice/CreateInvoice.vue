@@ -2,12 +2,12 @@
   <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
     <h2 v-if="!invoice_state" style="position: absolute; margin: 18px 0 0 20px; z-index: 2;">
       <button @click="showInvoice" type="button" class="btn btn-primary">
-        Nueva Factura
+        Nueva Nota de venta
       </button>
     </h2>
     <div v-show="invoice_state" class="card">
       <div class="header" style="padding-bottom: 60px;">
-        <h2 class="pull-left">Crear factura</h2>
+        <h2 class="pull-left">Crear Nota de venta</h2>
 
         <h2 class="pull-right">
           <a href @click.prevent="showInvoice" class="btn bg-red btn-circle waves-effect waves-circle waves-float">
@@ -118,7 +118,7 @@
 
           <div class="row">
             <div class="col-md-6">
-              <p>Número de factura</p>
+              <p>Número de nota de venta</p>
               <div class="input-group">
                 <span class="input-group-addon">
                   <i class="material-icons">person</i>
@@ -130,7 +130,7 @@
             </div>
 
             <div class="col-md-6">
-              <p>Fecha de la factura</p>
+              <p>Fecha de la nota de venta</p>
               <div class="input-group">
                 <span class="input-group-addon">
                   <i class="material-icons">person</i>
@@ -349,7 +349,7 @@
               </div>
 
               <div class="form-group">
-                <button type="submit" class="btn bg-teal">Generar Factura</button>
+                <button type="submit" class="btn bg-teal">Generar Nota de Venta</button>
               </div>
             </div>
           </div>

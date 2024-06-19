@@ -4,7 +4,7 @@
 @section('title','Inventory | Report')
 
 
-@section('page-title','Report')
+@section('page-title','Rerporte')
 
 
 @section('content')
@@ -18,8 +18,8 @@
 			<div class="header">
 				<h2>
 					
-					Generate Report
-					
+					Generar informe 
+					 
 				</h2>
 			</div>
 
@@ -45,7 +45,7 @@
 
 
 					<div class="row text-center">
-						<button type="submit" class="btn bg-teal">Get Report</button>
+						<button type="submit" class="btn bg-teal">Generar Reporte</button>
 					</div>
 
 

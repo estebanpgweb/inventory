@@ -4,7 +4,7 @@
 @section('title','Inventory | Due-Report')
 
 
-@section('page-title','Due Report')
+@section('page-title','Pendientes de pago')
 
 
 @section('content')
@@ -18,7 +18,7 @@
 			<div class="header">
 				<h2>
 					
-					Due Report
+					Informe de pendientes de pago
 					
 				</h2>
 
@@ -52,15 +52,15 @@
 							</tr>  			
 
 							<tr style="border: none !important;">
-								<td colspan="4" style="border: none !important;"><p style="text-align: center;font-weight: bold;">Due Report from {{ date('j M Y',strtotime($start_date)) }} To {{ date('j M Y',strtotime($end_date)) }}</p></td>
+								<td colspan="4" style="border: none !important;"><p style="text-align: center;font-weight: bold;">Pendientes de pago desde {{ date('j M Y',strtotime($start_date)) }} To {{ date('j M Y',strtotime($end_date)) }}</p></td>
 
 							</tr>
 							<tr>
 								
-								<th>Customer</th>
-								<th>Total Importe</th>
-								<th>Paid Importe</th>
-								<th>Due</th>
+								<th>Cliente</th>
+								<th>Importe Total</th>
+								<th>Importe Pagado</th>
+								<th>Importe Pendiente</th>
 							</tr>
 						</thead>
 						

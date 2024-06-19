@@ -8,7 +8,7 @@
       <div class="row">
         <div class="col-md-6">
           <input type="text" class="form-control " v-on:keyup="getData(1)" v-model="invoice_id"
-            placeholder="Buscar por número de factura">
+            placeholder="Buscar por numero de nota de venta">
         </div>
         <div class="col-md-6">
           <select class="form-control  select2" data-live-serach="true" @change="getData(1)" v-model="customer_id"
@@ -38,7 +38,7 @@
         <table class="table table-condensed table-hover table-bordered">
           <thead>
             <tr>
-              <th>Facturación</th>
+              <th>Nota de Venta</th>
               <th>Fecha</th>
               <th>Cliente</th>
               <th>Monto total</th>

@@ -17,8 +17,8 @@
 		<div class="card">
 			<div class="header">
 				<h2>
-					
-					Stock Report
+
+					Informe de Inventario 
 					
 				</h2>
 
@@ -52,20 +52,20 @@
 							</tr>  				
 
 							<tr style="border: none !important;">
-								<td colspan="11" style="border: none !important;"><p style="text-align: center;font-weight: bold;">Stock Report from {{ date('j M Y',strtotime($start_date)) }} To {{ date('j M Y',strtotime($end_date)) }}</p></td>
+								<td colspan="11" style="border: none !important;"><p style="text-align: center;font-weight: bold;">Informe de inventario desde {{ date('j M Y',strtotime($start_date)) }} To {{ date('j M Y',strtotime($end_date)) }}</p></td>
 
 							</tr>
 							<tr>
-								<th>Category</th>
-								<th>Product</th>
+								<th>Categoría</th>
+								<th>Producto</th>
 								<th>Comprobante</th>
 								<th>Fecha</th>
-								<th>Entry By</th>
-								<th>Buying Price</th>
-								<th>Selling Price</th>
-								<th>Stock Quantity</th>
-								<th>Sold Quantity</th>
-								<th>Current Quantity</th>
+								<th>Ingresado Por</th>
+								<th>Costo de Compra</th>
+								<th>Precio de Venta</th>
+								<th>Cantidad en Stock</th>
+								<th>Cantidad Vendida</th>
+								<th>Cantidad Actual</th>
 							</tr>
 						</thead>
 

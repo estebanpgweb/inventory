@@ -57,7 +57,7 @@
 /******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
 /******/
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "";
+/******/ 	__webpack_require__.p = "/";
 /******/
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(__webpack_require__.s = 212);
@@ -22984,8 +22984,8 @@ if (false) {
 
 "use strict";
 /* WEBPACK VAR INJECTION */(function(global, setImmediate) {/*!
- * Vue.js v2.7.14
- * (c) 2014-2022 Evan You
+ * Vue.js v2.7.15
+ * (c) 2014-2023 Evan You
  * Released under the MIT License.
  */
 
@@ -23227,9 +23227,7 @@ const identity = (_) => _;
  */
 function genStaticKeys$1(modules) {
     return modules
-        .reduce((keys, m) => {
-        return keys.concat(m.staticKeys || []);
-    }, [])
+        .reduce((keys, m) => keys.concat(m.staticKeys || []), [])
         .join(',');
 }
 /**
@@ -23824,7 +23822,7 @@ methodsToPatch.forEach(function (method) {
 });
 
 const arrayKeys = Object.getOwnPropertyNames(arrayMethods);
-const NO_INIITIAL_VALUE = {};
+const NO_INITIAL_VALUE = {};
 /**
  * In some cases we may want to disable observation inside a component's
  * update computation.
@@ -23881,7 +23879,7 @@ class Observer {
             const keys = Object.keys(value);
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
-                defineReactive(value, key, NO_INIITIAL_VALUE, undefined, shallow, mock);
+                defineReactive(value, key, NO_INITIAL_VALUE, undefined, shallow, mock);
             }
         }
     }
@@ -23927,7 +23925,7 @@ function defineReactive(obj, key, val, customSetter, shallow, mock) {
     const getter = property && property.get;
     const setter = property && property.set;
     if ((!getter || setter) &&
-        (val === NO_INIITIAL_VALUE || arguments.length === 2)) {
+        (val === NO_INITIAL_VALUE || arguments.length === 2)) {
         val = obj[key];
     }
     let childOb = !shallow && observe(val, false, mock);
@@ -25727,6 +25725,109 @@ function eventsMixin(Vue) {
     };
 }
 
+let activeEffectScope;
+class EffectScope {
+    constructor(detached = false) {
+        this.detached = detached;
+        /**
+         * @internal
+         */
+        this.active = true;
+        /**
+         * @internal
+         */
+        this.effects = [];
+        /**
+         * @internal
+         */
+        this.cleanups = [];
+        this.parent = activeEffectScope;
+        if (!detached && activeEffectScope) {
+            this.index =
+                (activeEffectScope.scopes || (activeEffectScope.scopes = [])).push(this) - 1;
+        }
+    }
+    run(fn) {
+        if (this.active) {
+            const currentEffectScope = activeEffectScope;
+            try {
+                activeEffectScope = this;
+                return fn();
+            }
+            finally {
+                activeEffectScope = currentEffectScope;
+            }
+        }
+        else {
+            warn$2(`cannot run an inactive effect scope.`);
+        }
+    }
+    /**
+     * This should only be called on non-detached scopes
+     * @internal
+     */
+    on() {
+        activeEffectScope = this;
+    }
+    /**
+     * This should only be called on non-detached scopes
+     * @internal
+     */
+    off() {
+        activeEffectScope = this.parent;
+    }
+    stop(fromParent) {
+        if (this.active) {
+            let i, l;
+            for (i = 0, l = this.effects.length; i < l; i++) {
+                this.effects[i].teardown();
+            }
+            for (i = 0, l = this.cleanups.length; i < l; i++) {
+                this.cleanups[i]();
+            }
+            if (this.scopes) {
+                for (i = 0, l = this.scopes.length; i < l; i++) {
+                    this.scopes[i].stop(true);
+                }
+            }
+            // nested scope, dereference from parent to avoid memory leaks
+            if (!this.detached && this.parent && !fromParent) {
+                // optimized O(1) removal
+                const last = this.parent.scopes.pop();
+                if (last && last !== this) {
+                    this.parent.scopes[this.index] = last;
+                    last.index = this.index;
+                }
+            }
+            this.parent = undefined;
+            this.active = false;
+        }
+    }
+}
+function effectScope(detached) {
+    return new EffectScope(detached);
+}
+/**
+ * @internal
+ */
+function recordEffectScope(effect, scope = activeEffectScope) {
+    if (scope && scope.active) {
+        scope.effects.push(effect);
+    }
+}
+function getCurrentScope() {
+    return activeEffectScope;
+}
+function onScopeDispose(fn) {
+    if (activeEffectScope) {
+        activeEffectScope.cleanups.push(fn);
+    }
+    else {
+        warn$2(`onScopeDispose() is called when there is no active effect scope` +
+            ` to be associated with.`);
+    }
+}
+
 let activeInstance = null;
 let isUpdatingChildComponent = false;
 function setActiveInstance(vm) {
@@ -26028,7 +26129,8 @@ function deactivateChildComponent(vm, direct) {
 function callHook$1(vm, hook, args, setContext = true) {
     // #7573 disable dep collection when invoking lifecycle hooks
     pushTarget();
-    const prev = currentInstance;
+    const prevInst = currentInstance;
+    const prevScope = getCurrentScope();
     setContext && setCurrentInstance(vm);
     const handlers = vm.$options[hook];
     const info = `${hook} hook`;
@@ -26040,7 +26142,10 @@ function callHook$1(vm, hook, args, setContext = true) {
     if (vm._hasHookEvent) {
         vm.$emit('hook:' + hook);
     }
-    setContext && setCurrentInstance(prev);
+    if (setContext) {
+        setCurrentInstance(prevInst);
+        prevScope && prevScope.on();
+    }
     popTarget();
 }
 
@@ -26418,109 +26523,6 @@ function doWatch(source, cb, { immediate, deep, flush = 'pre', onTrack, onTrigge
     };
 }
 
-let activeEffectScope;
-class EffectScope {
-    constructor(detached = false) {
-        this.detached = detached;
-        /**
-         * @internal
-         */
-        this.active = true;
-        /**
-         * @internal
-         */
-        this.effects = [];
-        /**
-         * @internal
-         */
-        this.cleanups = [];
-        this.parent = activeEffectScope;
-        if (!detached && activeEffectScope) {
-            this.index =
-                (activeEffectScope.scopes || (activeEffectScope.scopes = [])).push(this) - 1;
-        }
-    }
-    run(fn) {
-        if (this.active) {
-            const currentEffectScope = activeEffectScope;
-            try {
-                activeEffectScope = this;
-                return fn();
-            }
-            finally {
-                activeEffectScope = currentEffectScope;
-            }
-        }
-        else {
-            warn$2(`cannot run an inactive effect scope.`);
-        }
-    }
-    /**
-     * This should only be called on non-detached scopes
-     * @internal
-     */
-    on() {
-        activeEffectScope = this;
-    }
-    /**
-     * This should only be called on non-detached scopes
-     * @internal
-     */
-    off() {
-        activeEffectScope = this.parent;
-    }
-    stop(fromParent) {
-        if (this.active) {
-            let i, l;
-            for (i = 0, l = this.effects.length; i < l; i++) {
-                this.effects[i].teardown();
-            }
-            for (i = 0, l = this.cleanups.length; i < l; i++) {
-                this.cleanups[i]();
-            }
-            if (this.scopes) {
-                for (i = 0, l = this.scopes.length; i < l; i++) {
-                    this.scopes[i].stop(true);
-                }
-            }
-            // nested scope, dereference from parent to avoid memory leaks
-            if (!this.detached && this.parent && !fromParent) {
-                // optimized O(1) removal
-                const last = this.parent.scopes.pop();
-                if (last && last !== this) {
-                    this.parent.scopes[this.index] = last;
-                    last.index = this.index;
-                }
-            }
-            this.parent = undefined;
-            this.active = false;
-        }
-    }
-}
-function effectScope(detached) {
-    return new EffectScope(detached);
-}
-/**
- * @internal
- */
-function recordEffectScope(effect, scope = activeEffectScope) {
-    if (scope && scope.active) {
-        scope.effects.push(effect);
-    }
-}
-function getCurrentScope() {
-    return activeEffectScope;
-}
-function onScopeDispose(fn) {
-    if (activeEffectScope) {
-        activeEffectScope.cleanups.push(fn);
-    }
-    else {
-        warn$2(`onScopeDispose() is called when there is no active effect scope` +
-            ` to be associated with.`);
-    }
-}
-
 function provide(key, value) {
     if (!currentInstance) {
         {
@@ -26819,7 +26821,7 @@ function defineAsyncComponent(source) {
     suspensible = false, // in Vue 3 default is true
     onError: userOnError } = source;
     if (suspensible) {
-        warn$2(`The suspensiblbe option for async components is not supported in Vue2. It is ignored.`);
+        warn$2(`The suspensible option for async components is not supported in Vue2. It is ignored.`);
     }
     let pendingRequest = null;
     let retries = 0;
@@ -26920,7 +26922,7 @@ function onErrorCaptured(hook, target = currentInstance) {
 /**
  * Note: also update dist/vue.runtime.mjs when adding new exports to this file.
  */
-const version = '2.7.14';
+const version = '2.7.15';
 /**
  * @internal type is manually declared in <root>/types/v3-define-component.d.ts
  */
@@ -29172,7 +29174,7 @@ function isUnknownElement(tag) {
     }
     const el = document.createElement(tag);
     if (tag.indexOf('-') > -1) {
-        // http://stackoverflow.com/a/28210364/1070244
+        // https://stackoverflow.com/a/28210364/1070244
         return (unknownElementCache[tag] =
             el.constructor === window.HTMLUnknownElement ||
                 el.constructor === window.HTMLElement);
@@ -30046,8 +30048,11 @@ function createPatchFunction(backend) {
                             const insert = ancestor.data.hook.insert;
                             if (insert.merged) {
                                 // start at index 1 to avoid re-invoking component mounted hook
-                                for (let i = 1; i < insert.fns.length; i++) {
-                                    insert.fns[i]();
+                                // clone insert hooks to avoid being mutated during iteration.
+                                // e.g. for customed directives under transition group.
+                                const cloned = insert.fns.slice(1);
+                                for (let i = 0; i < cloned.length; i++) {
+                                    cloned[i]();
                                 }
                             }
                         }
@@ -32428,7 +32433,7 @@ function parseHTML(html, options) {
                         continue;
                     }
                 }
-                // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+                // https://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
                 if (conditionalComment.test(html)) {
                     const conditionalEnd = html.indexOf(']>');
                     if (conditionalEnd >= 0) {
@@ -38385,21 +38390,21 @@ if (false) {
 // mixins for moment js ... recomanded to not include when you don't need it
 
 /* harmony default export */ __webpack_exports__["a"] = ({
-   created: function created() {
+  created: function created() {
 
-      // this.hello();
+    // this.hello();
 
-   },
+  },
 
 
-   methods: {},
+  methods: {},
 
-   filters: {
-      moment: function moment(date, format) {
-         return __WEBPACK_IMPORTED_MODULE_0_moment___default()(date).format(format);
-      }
+  filters: {
+    moment: function moment(date, format) {
+      return __WEBPACK_IMPORTED_MODULE_0_moment___default()(date).format(format);
+    }
 
-   }
+  }
 
 });
 
@@ -38644,6 +38649,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
 
 
 
@@ -38660,8 +38666,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         category: "",
         vendor: "",
         quantity: "",
-        buying_price: "",
-        selling_price: "",
         note: ""
       },
 
@@ -38719,8 +38723,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         product: "",
         vendor: "",
         quantity: "",
-        buying_price: "",
-        selling_price: "",
         note: "",
         category: ""
       };
@@ -38884,7 +38886,7 @@ var render = function() {
                             },
                             [
                               _c("option", { attrs: { value: "" } }, [
-                                _vm._v("Selecciona un producto")
+                                _vm._v("Selecciona una talla")
                               ]),
                               _vm._v(" "),
                               _vm._l(_vm.products, function(value, index) {
@@ -39009,80 +39011,6 @@ var render = function() {
                               {
                                 name: "model",
                                 rawName: "v-model",
-                                value: _vm.stock.buying_price,
-                                expression: "stock.buying_price"
-                              }
-                            ],
-                            staticClass: "form-control",
-                            attrs: {
-                              type: "text",
-                              placeholder: "Precio de compra"
-                            },
-                            domProps: { value: _vm.stock.buying_price },
-                            on: {
-                              input: function($event) {
-                                if ($event.target.composing) {
-                                  return
-                                }
-                                _vm.$set(
-                                  _vm.stock,
-                                  "buying_price",
-                                  $event.target.value
-                                )
-                              }
-                            }
-                          })
-                        ])
-                      ])
-                    ]),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "col-md-6" }, [
-                      _c("div", { staticClass: "input-group" }, [
-                        _vm._m(6),
-                        _vm._v(" "),
-                        _c("div", { staticClass: "form-line" }, [
-                          _c("input", {
-                            directives: [
-                              {
-                                name: "model",
-                                rawName: "v-model",
-                                value: _vm.stock.selling_price,
-                                expression: "stock.selling_price"
-                              }
-                            ],
-                            staticClass: "form-control",
-                            attrs: {
-                              type: "text",
-                              placeholder: "Precio de venta"
-                            },
-                            domProps: { value: _vm.stock.selling_price },
-                            on: {
-                              input: function($event) {
-                                if ($event.target.composing) {
-                                  return
-                                }
-                                _vm.$set(
-                                  _vm.stock,
-                                  "selling_price",
-                                  $event.target.value
-                                )
-                              }
-                            }
-                          })
-                        ])
-                      ])
-                    ]),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "col-md-6" }, [
-                      _c("div", { staticClass: "input-group" }, [
-                        _vm._m(7),
-                        _vm._v(" "),
-                        _c("div", { staticClass: "form-line" }, [
-                          _c("input", {
-                            directives: [
-                              {
-                                name: "model",
-                                rawName: "v-model",
                                 value: _vm.stock.quantity,
                                 expression: "stock.quantity"
                               }
@@ -39109,7 +39037,7 @@ var render = function() {
                     _vm._v(" "),
                     _c("div", { staticClass: "col-md-6" }, [
                       _c("div", { staticClass: "input-group" }, [
-                        _vm._m(8),
+                        _vm._m(6),
                         _vm._v(" "),
                         _c("div", { staticClass: "form-line" }, [
                           _c("input", {
@@ -39225,22 +39153,6 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("span", { staticClass: "input-group-addon" }, [
       _c("i", { staticClass: "material-icons" }, [_vm._v("playlist_add_check")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("span", { staticClass: "input-group-addon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("attach_money")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("span", { staticClass: "input-group-addon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("attach_money")])
     ])
   },
   function() {
@@ -39423,12 +39335,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
-//
-//
-//
-//
-//
-//
 
 
 
@@ -39481,8 +39387,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
       this.isLoading = true;
       axios.get(base_url + "stock-list?page=" + page + "&product=" + this.product + "&category=" + this.category + "&vendor=" + this.vendor).then(function (response) {
-        // console.log(response.data);
-
         _this2.stocks = response.data;
         _this2.isLoading = false;
       }).catch(function (error) {
@@ -39758,8 +39662,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         vendor: "",
         quantity: "",
         current_quantity: "",
-        buying_price: "",
-        selling_price: "",
         note: "",
         chalan_no: ""
       },
@@ -39798,8 +39700,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
           vendor: response.data.vendor_id,
           quantity: response.data.stock_quantity,
           current_quantity: response.data.current_quantity,
-          buying_price: response.data.buying_price,
-          selling_price: response.data.selling_price,
           note: response.data.note,
           chalan_no: response.data.chalan_no
         };
@@ -39847,8 +39747,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         product: "",
         vendor: "",
         quantity: "",
-        buying_price: "",
-        selling_price: "",
         note: "",
         category: ""
       };
@@ -40015,7 +39913,7 @@ var render = function() {
                                 return _c(
                                   "option",
                                   { domProps: { value: value.id } },
-                                  [_vm._v(_vm._s(value.product_name))]
+                                  [_vm._v(_vm._s(value.details))]
                                 )
                               })
                             ],
@@ -40138,80 +40036,6 @@ var render = function() {
                               {
                                 name: "model",
                                 rawName: "v-model",
-                                value: _vm.stock.buying_price,
-                                expression: "stock.buying_price"
-                              }
-                            ],
-                            staticClass: "form-control",
-                            attrs: {
-                              type: "text",
-                              placeholder: "Precio de compra"
-                            },
-                            domProps: { value: _vm.stock.buying_price },
-                            on: {
-                              input: function($event) {
-                                if ($event.target.composing) {
-                                  return
-                                }
-                                _vm.$set(
-                                  _vm.stock,
-                                  "buying_price",
-                                  $event.target.value
-                                )
-                              }
-                            }
-                          })
-                        ])
-                      ])
-                    ]),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "col-md-6" }, [
-                      _c("div", { staticClass: "input-group" }, [
-                        _vm._m(6),
-                        _vm._v(" "),
-                        _c("div", { staticClass: "form-line" }, [
-                          _c("input", {
-                            directives: [
-                              {
-                                name: "model",
-                                rawName: "v-model",
-                                value: _vm.stock.selling_price,
-                                expression: "stock.selling_price"
-                              }
-                            ],
-                            staticClass: "form-control",
-                            attrs: {
-                              type: "text",
-                              placeholder: "Precio de venta"
-                            },
-                            domProps: { value: _vm.stock.selling_price },
-                            on: {
-                              input: function($event) {
-                                if ($event.target.composing) {
-                                  return
-                                }
-                                _vm.$set(
-                                  _vm.stock,
-                                  "selling_price",
-                                  $event.target.value
-                                )
-                              }
-                            }
-                          })
-                        ])
-                      ])
-                    ]),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "col-md-6" }, [
-                      _c("div", { staticClass: "input-group" }, [
-                        _vm._m(7),
-                        _vm._v(" "),
-                        _c("div", { staticClass: "form-line" }, [
-                          _c("input", {
-                            directives: [
-                              {
-                                name: "model",
-                                rawName: "v-model",
                                 value: _vm.stock.current_quantity,
                                 expression: "stock.current_quantity"
                               }
@@ -40242,7 +40066,7 @@ var render = function() {
                     _vm._v(" "),
                     _c("div", { staticClass: "col-md-6" }, [
                       _c("div", { staticClass: "input-group" }, [
-                        _vm._m(8),
+                        _vm._m(6),
                         _vm._v(" "),
                         _c("div", { staticClass: "form-line" }, [
                           _c("input", {
@@ -40358,22 +40182,6 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("span", { staticClass: "input-group-addon" }, [
       _c("i", { staticClass: "material-icons" }, [_vm._v("playlist_add_check")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("span", { staticClass: "input-group-addon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("attach_money")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("span", { staticClass: "input-group-addon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("attach_money")])
     ])
   },
   function() {
@@ -40894,7 +40702,7 @@ var render = function() {
               },
               [
                 _c("option", { attrs: { value: "" } }, [
-                  _vm._v("Todas la categorías")
+                  _vm._v("Todas las categorías")
                 ]),
                 _vm._v(" "),
                 _vm._l(_vm.categorys, function(cat, index) {
@@ -41044,17 +40852,11 @@ var render = function() {
                         _vm._v(" "),
                         _c("td", [_vm._v(_vm._s(value.product.product_name))]),
                         _vm._v(" "),
-                        _c("td", [_vm._v(_vm._s(value.vendor.name))]),
-                        _vm._v(" "),
                         _c("td", [_vm._v(_vm._s(value.chalan_no))]),
                         _vm._v(" "),
                         _c("td", [_vm._v(_vm._s(value.stock_quantity))]),
                         _vm._v(" "),
                         _c("td", [_vm._v(_vm._s(value.current_quantity))]),
-                        _vm._v(" "),
-                        _c("td", [_vm._v(_vm._s(value.buying_price))]),
-                        _vm._v(" "),
-                        _c("td", [_vm._v(_vm._s(value.selling_price))]),
                         _vm._v(" "),
                         _c("td", [_vm._v(_vm._s(value.user.name))]),
                         _vm._v(" "),
@@ -41155,19 +40957,13 @@ var staticRenderFns = [
       _c("tr", [
         _c("th", [_vm._v("Categoría")]),
         _vm._v(" "),
-        _c("th", [_vm._v("Producto")]),
-        _vm._v(" "),
-        _c("th", [_vm._v("Proveedor")]),
+        _c("th", [_vm._v("Talla")]),
         _vm._v(" "),
         _c("th", [_vm._v("Comprobante")]),
         _vm._v(" "),
         _c("th", [_vm._v("Existencia inicial")]),
         _vm._v(" "),
         _c("th", [_vm._v("Existencia actual")]),
-        _vm._v(" "),
-        _c("th", [_vm._v("Precio de compra")]),
-        _vm._v(" "),
-        _c("th", [_vm._v("Precio de venta")]),
         _vm._v(" "),
         _c("th", [_vm._v("Entrada por")]),
         _vm._v(" "),

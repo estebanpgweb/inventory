@@ -4,7 +4,7 @@
 @section('title','Inventory | Sell-Report')
 
 
-@section('page-title','Sell Report')
+@section('page-title','Informe de Ventas')
 
 
 @section('content')
@@ -18,7 +18,7 @@
 			<div class="header">
 				<h2>
 					
-					Sell Report
+					Informe de Ventas
 					
 				</h2>
 
@@ -52,21 +52,21 @@
 							</tr>  			
 
 							<tr style="border: none !important;">
-								<td colspan="11" style="border: none !important;"><p style="text-align: center;font-weight: bold;">Sell Report from {{ date('j M Y',strtotime($start_date)) }} To {{ date('j M Y',strtotime($end_date)) }}</p></td>
+								<td colspan="11" style="border: none !important;"><p style="text-align: center;font-weight: bold;">Informe de Ventas desde {{ date('j M Y',strtotime($start_date)) }} To {{ date('j M Y',strtotime($end_date)) }}</p></td>
 
 							</tr>
 							<tr>
-								<th>Product</th>
+								<th>Producto</th>
 								<th>Comprobante</th>
-								<th>Sold Date</th>
-								<th>Customer</th>
-								<th>Seller</th>
-								<th>Quantity</th>
-								<th>Unit Buying Price</th>
-								<th>Unit Selling Price</th>
-								<th>Disount Importe</th>
-								<th>Total Buying Importe</th>
-								<th>Total Selling Importe</th>
+								<th>Fecha de venta</th>
+								<th>Cliente</th>
+								<th>Vendedor</th>
+								<th>Cantidad</th>
+								<th>Costo Unitario</th>
+								<th>Precio Unitario de Venta</th>
+								<th>Descuento</th>
+								<th>Importe Total de Compra</th>
+								<th>Importe Total de Venta</th>
 							
 							</tr>
 						</thead>

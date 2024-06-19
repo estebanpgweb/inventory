@@ -29,10 +29,10 @@
 							</tr>
 							<tr>
 								
-								<th>Customer</th>
-								<th>Total Importe</th>
-								<th>Paid Importe</th>
-								<th>Due</th>
+								<th>Cliente</th>
+								<th>Importe Total</th>
+								<th>Importe Pagado</th>
+								<th>Importe Pendiente</th>
 							</tr>
 						</thead>
 						

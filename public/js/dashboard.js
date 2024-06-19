@@ -57,7 +57,7 @@
 /******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
 /******/
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "";
+/******/ 	__webpack_require__.p = "/";
 /******/
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(__webpack_require__.s = 303);
@@ -22984,8 +22984,8 @@ if (false) {
 
 "use strict";
 /* WEBPACK VAR INJECTION */(function(global, setImmediate) {/*!
- * Vue.js v2.7.14
- * (c) 2014-2022 Evan You
+ * Vue.js v2.7.15
+ * (c) 2014-2023 Evan You
  * Released under the MIT License.
  */
 
@@ -23227,9 +23227,7 @@ const identity = (_) => _;
  */
 function genStaticKeys$1(modules) {
     return modules
-        .reduce((keys, m) => {
-        return keys.concat(m.staticKeys || []);
-    }, [])
+        .reduce((keys, m) => keys.concat(m.staticKeys || []), [])
         .join(',');
 }
 /**
@@ -23824,7 +23822,7 @@ methodsToPatch.forEach(function (method) {
 });
 
 const arrayKeys = Object.getOwnPropertyNames(arrayMethods);
-const NO_INIITIAL_VALUE = {};
+const NO_INITIAL_VALUE = {};
 /**
  * In some cases we may want to disable observation inside a component's
  * update computation.
@@ -23881,7 +23879,7 @@ class Observer {
             const keys = Object.keys(value);
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
-                defineReactive(value, key, NO_INIITIAL_VALUE, undefined, shallow, mock);
+                defineReactive(value, key, NO_INITIAL_VALUE, undefined, shallow, mock);
             }
         }
     }
@@ -23927,7 +23925,7 @@ function defineReactive(obj, key, val, customSetter, shallow, mock) {
     const getter = property && property.get;
     const setter = property && property.set;
     if ((!getter || setter) &&
-        (val === NO_INIITIAL_VALUE || arguments.length === 2)) {
+        (val === NO_INITIAL_VALUE || arguments.length === 2)) {
         val = obj[key];
     }
     let childOb = !shallow && observe(val, false, mock);
@@ -25727,6 +25725,109 @@ function eventsMixin(Vue) {
     };
 }
 
+let activeEffectScope;
+class EffectScope {
+    constructor(detached = false) {
+        this.detached = detached;
+        /**
+         * @internal
+         */
+        this.active = true;
+        /**
+         * @internal
+         */
+        this.effects = [];
+        /**
+         * @internal
+         */
+        this.cleanups = [];
+        this.parent = activeEffectScope;
+        if (!detached && activeEffectScope) {
+            this.index =
+                (activeEffectScope.scopes || (activeEffectScope.scopes = [])).push(this) - 1;
+        }
+    }
+    run(fn) {
+        if (this.active) {
+            const currentEffectScope = activeEffectScope;
+            try {
+                activeEffectScope = this;
+                return fn();
+            }
+            finally {
+                activeEffectScope = currentEffectScope;
+            }
+        }
+        else {
+            warn$2(`cannot run an inactive effect scope.`);
+        }
+    }
+    /**
+     * This should only be called on non-detached scopes
+     * @internal
+     */
+    on() {
+        activeEffectScope = this;
+    }
+    /**
+     * This should only be called on non-detached scopes
+     * @internal
+     */
+    off() {
+        activeEffectScope = this.parent;
+    }
+    stop(fromParent) {
+        if (this.active) {
+            let i, l;
+            for (i = 0, l = this.effects.length; i < l; i++) {
+                this.effects[i].teardown();
+            }
+            for (i = 0, l = this.cleanups.length; i < l; i++) {
+                this.cleanups[i]();
+            }
+            if (this.scopes) {
+                for (i = 0, l = this.scopes.length; i < l; i++) {
+                    this.scopes[i].stop(true);
+                }
+            }
+            // nested scope, dereference from parent to avoid memory leaks
+            if (!this.detached && this.parent && !fromParent) {
+                // optimized O(1) removal
+                const last = this.parent.scopes.pop();
+                if (last && last !== this) {
+                    this.parent.scopes[this.index] = last;
+                    last.index = this.index;
+                }
+            }
+            this.parent = undefined;
+            this.active = false;
+        }
+    }
+}
+function effectScope(detached) {
+    return new EffectScope(detached);
+}
+/**
+ * @internal
+ */
+function recordEffectScope(effect, scope = activeEffectScope) {
+    if (scope && scope.active) {
+        scope.effects.push(effect);
+    }
+}
+function getCurrentScope() {
+    return activeEffectScope;
+}
+function onScopeDispose(fn) {
+    if (activeEffectScope) {
+        activeEffectScope.cleanups.push(fn);
+    }
+    else {
+        warn$2(`onScopeDispose() is called when there is no active effect scope` +
+            ` to be associated with.`);
+    }
+}
+
 let activeInstance = null;
 let isUpdatingChildComponent = false;
 function setActiveInstance(vm) {
@@ -26028,7 +26129,8 @@ function deactivateChildComponent(vm, direct) {
 function callHook$1(vm, hook, args, setContext = true) {
     // #7573 disable dep collection when invoking lifecycle hooks
     pushTarget();
-    const prev = currentInstance;
+    const prevInst = currentInstance;
+    const prevScope = getCurrentScope();
     setContext && setCurrentInstance(vm);
     const handlers = vm.$options[hook];
     const info = `${hook} hook`;
@@ -26040,7 +26142,10 @@ function callHook$1(vm, hook, args, setContext = true) {
     if (vm._hasHookEvent) {
         vm.$emit('hook:' + hook);
     }
-    setContext && setCurrentInstance(prev);
+    if (setContext) {
+        setCurrentInstance(prevInst);
+        prevScope && prevScope.on();
+    }
     popTarget();
 }
 
@@ -26418,109 +26523,6 @@ function doWatch(source, cb, { immediate, deep, flush = 'pre', onTrack, onTrigge
     };
 }
 
-let activeEffectScope;
-class EffectScope {
-    constructor(detached = false) {
-        this.detached = detached;
-        /**
-         * @internal
-         */
-        this.active = true;
-        /**
-         * @internal
-         */
-        this.effects = [];
-        /**
-         * @internal
-         */
-        this.cleanups = [];
-        this.parent = activeEffectScope;
-        if (!detached && activeEffectScope) {
-            this.index =
-                (activeEffectScope.scopes || (activeEffectScope.scopes = [])).push(this) - 1;
-        }
-    }
-    run(fn) {
-        if (this.active) {
-            const currentEffectScope = activeEffectScope;
-            try {
-                activeEffectScope = this;
-                return fn();
-            }
-            finally {
-                activeEffectScope = currentEffectScope;
-            }
-        }
-        else {
-            warn$2(`cannot run an inactive effect scope.`);
-        }
-    }
-    /**
-     * This should only be called on non-detached scopes
-     * @internal
-     */
-    on() {
-        activeEffectScope = this;
-    }
-    /**
-     * This should only be called on non-detached scopes
-     * @internal
-     */
-    off() {
-        activeEffectScope = this.parent;
-    }
-    stop(fromParent) {
-        if (this.active) {
-            let i, l;
-            for (i = 0, l = this.effects.length; i < l; i++) {
-                this.effects[i].teardown();
-            }
-            for (i = 0, l = this.cleanups.length; i < l; i++) {
-                this.cleanups[i]();
-            }
-            if (this.scopes) {
-                for (i = 0, l = this.scopes.length; i < l; i++) {
-                    this.scopes[i].stop(true);
-                }
-            }
-            // nested scope, dereference from parent to avoid memory leaks
-            if (!this.detached && this.parent && !fromParent) {
-                // optimized O(1) removal
-                const last = this.parent.scopes.pop();
-                if (last && last !== this) {
-                    this.parent.scopes[this.index] = last;
-                    last.index = this.index;
-                }
-            }
-            this.parent = undefined;
-            this.active = false;
-        }
-    }
-}
-function effectScope(detached) {
-    return new EffectScope(detached);
-}
-/**
- * @internal
- */
-function recordEffectScope(effect, scope = activeEffectScope) {
-    if (scope && scope.active) {
-        scope.effects.push(effect);
-    }
-}
-function getCurrentScope() {
-    return activeEffectScope;
-}
-function onScopeDispose(fn) {
-    if (activeEffectScope) {
-        activeEffectScope.cleanups.push(fn);
-    }
-    else {
-        warn$2(`onScopeDispose() is called when there is no active effect scope` +
-            ` to be associated with.`);
-    }
-}
-
 function provide(key, value) {
     if (!currentInstance) {
         {
@@ -26819,7 +26821,7 @@ function defineAsyncComponent(source) {
     suspensible = false, // in Vue 3 default is true
     onError: userOnError } = source;
     if (suspensible) {
-        warn$2(`The suspensiblbe option for async components is not supported in Vue2. It is ignored.`);
+        warn$2(`The suspensible option for async components is not supported in Vue2. It is ignored.`);
     }
     let pendingRequest = null;
     let retries = 0;
@@ -26920,7 +26922,7 @@ function onErrorCaptured(hook, target = currentInstance) {
 /**
  * Note: also update dist/vue.runtime.mjs when adding new exports to this file.
  */
-const version = '2.7.14';
+const version = '2.7.15';
 /**
  * @internal type is manually declared in <root>/types/v3-define-component.d.ts
  */
@@ -29172,7 +29174,7 @@ function isUnknownElement(tag) {
     }
     const el = document.createElement(tag);
     if (tag.indexOf('-') > -1) {
-        // http://stackoverflow.com/a/28210364/1070244
+        // https://stackoverflow.com/a/28210364/1070244
         return (unknownElementCache[tag] =
             el.constructor === window.HTMLUnknownElement ||
                 el.constructor === window.HTMLElement);
@@ -30046,8 +30048,11 @@ function createPatchFunction(backend) {
                             const insert = ancestor.data.hook.insert;
                             if (insert.merged) {
                                 // start at index 1 to avoid re-invoking component mounted hook
-                                for (let i = 1; i < insert.fns.length; i++) {
-                                    insert.fns[i]();
+                                // clone insert hooks to avoid being mutated during iteration.
+                                // e.g. for customed directives under transition group.
+                                const cloned = insert.fns.slice(1);
+                                for (let i = 0; i < cloned.length; i++) {
+                                    cloned[i]();
                                 }
                             }
                         }
@@ -32428,7 +32433,7 @@ function parseHTML(html, options) {
                         continue;
                     }
                 }
-                // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+                // https://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
                 if (conditionalComment.test(html)) {
                     const conditionalEnd = html.indexOf(']>');
                     if (conditionalEnd >= 0) {
@@ -38459,16 +38464,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
 
 
 
@@ -38512,209 +38507,47 @@ var render = function() {
         ])
       : _vm._e(),
     _vm._v(" "),
-    !_vm.isLoading
-      ? _c("div", { staticClass: "row clearfix" }, [
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c("div", { staticClass: "info-box bg-teal hover-zoom-effect" }, [
-              _vm._m(0),
-              _vm._v(" "),
-              _c("div", { staticClass: "content" }, [
-                _c("div", { staticClass: "text" }, [_vm._v("Clientes")]),
-                _vm._v(" "),
-                _c("div", { staticClass: "number" }, [
-                  _vm._v(_vm._s(_vm.info.total_customer))
-                ])
-              ])
-            ])
-          ]),
+    _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
+      _c("div", { staticClass: "info-box bg-deep-purple hover-zoom-effect" }, [
+        _vm._m(0),
+        _vm._v(" "),
+        _c("div", { staticClass: "content" }, [
+          _c("div", { staticClass: "text" }, [_vm._v("Productos")]),
           _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c("div", { staticClass: "info-box bg-orange hover-zoom-effect" }, [
-              _vm._m(1),
-              _vm._v(" "),
-              _c("div", { staticClass: "content" }, [
-                _c("div", { staticClass: "text" }, [_vm._v("Proveedores")]),
-                _vm._v(" "),
-                _c("div", { staticClass: "number" }, [
-                  _vm._v(_vm._s(_vm.info.total_vendor))
-                ])
-              ])
-            ])
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c(
-              "div",
-              { staticClass: "info-box bg-deep-purple hover-zoom-effect" },
-              [
-                _vm._m(2),
-                _vm._v(" "),
-                _c("div", { staticClass: "content" }, [
-                  _c("div", { staticClass: "text" }, [_vm._v("Productos")]),
-                  _vm._v(" "),
-                  _c("div", { staticClass: "number" }, [
-                    _vm._v(_vm._s(_vm.info.total_product))
-                  ])
-                ])
-              ]
-            )
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c(
-              "div",
-              { staticClass: "info-box bg-blue-grey hover-zoom-effect" },
-              [
-                _vm._m(3),
-                _vm._v(" "),
-                _c("div", { staticClass: "content" }, [
-                  _c("div", { staticClass: "text" }, [_vm._v("Facturas")]),
-                  _vm._v(" "),
-                  _c("div", { staticClass: "number" }, [
-                    _vm._v(_vm._s(_vm.info.total_invoice))
-                  ])
-                ])
-              ]
-            )
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c("div", { staticClass: "info-box bg-indigo hover-zoom-effect" }, [
-              _vm._m(4),
-              _vm._v(" "),
-              _c("div", { staticClass: "content" }, [
-                _c("div", { staticClass: "text" }, [
-                  _vm._v("Existencia total")
-                ]),
-                _vm._v(" "),
-                _c("div", { staticClass: "number" }, [
-                  _c("small", [_vm._v(_vm._s(_vm.info.total_quantity))])
-                ])
-              ])
-            ])
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c("div", { staticClass: "info-box bg-pink hover-zoom-effect" }, [
-              _vm._m(5),
-              _vm._v(" "),
-              _c("div", { staticClass: "content" }, [
-                _c("div", { staticClass: "text" }, [
-                  _vm._v("Existencia vendida")
-                ]),
-                _vm._v(" "),
-                _c("div", { staticClass: "number" }, [
-                  _c("small", [_vm._v(_vm._s(_vm.info.total_sold_quantity))])
-                ])
-              ])
-            ])
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c("div", { staticClass: "info-box bg-blue hover-zoom-effect" }, [
-              _vm._m(6),
-              _vm._v(" "),
-              _c("div", { staticClass: "content" }, [
-                _c("div", { staticClass: "text" }, [
-                  _vm._v("Existencia actual")
-                ]),
-                _vm._v(" "),
-                _c("div", { staticClass: "number" }, [
-                  _c("small", [_vm._v(_vm._s(_vm.info.total_current_quantity))])
-                ])
-              ])
-            ])
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c(
-              "div",
-              { staticClass: "info-box bg-deep-orange hover-zoom-effect" },
-              [
-                _vm._m(7),
-                _vm._v(" "),
-                _c("div", { staticClass: "content" }, [
-                  _c("div", { staticClass: "text" }, [
-                    _vm._v("Importe vendido")
-                  ]),
-                  _vm._v(" "),
-                  _c("div", { staticClass: "number" }, [
-                    _c("small", [
-                      _vm._v("$ " + _vm._s(_vm.info.total_sold_amount))
-                    ])
-                  ])
-                ])
-              ]
-            )
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c("div", { staticClass: "info-box bg-green hover-zoom-effect" }, [
-              _vm._m(8),
-              _vm._v(" "),
-              _c("div", { staticClass: "content" }, [
-                _c("div", { staticClass: "text" }, [_vm._v("Importe pagado")]),
-                _vm._v(" "),
-                _c("div", { staticClass: "number" }, [
-                  _c("small", [
-                    _vm._v("$ " + _vm._s(_vm.info.total_paid_amount))
-                  ])
-                ])
-              ])
-            ])
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c("div", { staticClass: "info-box bg-red hover-zoom-effect" }, [
-              _vm._m(9),
-              _vm._v(" "),
-              _c("div", { staticClass: "content" }, [
-                _c("div", { staticClass: "text" }, [
-                  _vm._v("Importe restante")
-                ]),
-                _vm._v(" "),
-                _c("div", { staticClass: "number" }, [
-                  _c("small", [
-                    _vm._v("$ " + _vm._s(_vm.info.total_outstanding))
-                  ])
-                ])
-              ])
-            ])
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c("div", { staticClass: "info-box bg-brown hover-zoom-effect" }, [
-              _vm._m(10),
-              _vm._v(" "),
-              _c("div", { staticClass: "content" }, [
-                _c("div", { staticClass: "text" }, [_vm._v("Beneficio bruto")]),
-                _vm._v(" "),
-                _c("div", { staticClass: "number" }, [
-                  _c("small", [
-                    _vm._v("$ " + _vm._s(_vm.info.total_gross_profit))
-                  ])
-                ])
-              ])
-            ])
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
-            _c("div", { staticClass: "info-box bg-cyan hover-zoom-effect" }, [
-              _vm._m(11),
-              _vm._v(" "),
-              _c("div", { staticClass: "content" }, [
-                _c("div", { staticClass: "text" }, [_vm._v("Beneficio neto")]),
-                _vm._v(" "),
-                _c("div", { staticClass: "number" }, [
-                  _c("small", [
-                    _vm._v("$ " + _vm._s(_vm.info.total_net_profit))
-                  ])
-                ])
-              ])
-            ])
+          _c("div", { staticClass: "number" }, [
+            _vm._v(_vm._s(_vm.info.total_product))
           ])
         ])
-      : _vm._e()
+      ])
+    ]),
+    _vm._v(" "),
+    _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
+      _c("div", { staticClass: "info-box bg-indigo hover-zoom-effect" }, [
+        _vm._m(1),
+        _vm._v(" "),
+        _c("div", { staticClass: "content" }, [
+          _c("div", { staticClass: "text" }, [_vm._v("Existencia total")]),
+          _vm._v(" "),
+          _c("div", { staticClass: "number" }, [
+            _c("small", [_vm._v(_vm._s(_vm.info.total_quantity))])
+          ])
+        ])
+      ])
+    ]),
+    _vm._v(" "),
+    _c("div", { staticClass: "col-lg-3 col-md-3 col-sm-6 col-xs-12" }, [
+      _c("div", { staticClass: "info-box bg-blue hover-zoom-effect" }, [
+        _vm._m(2),
+        _vm._v(" "),
+        _c("div", { staticClass: "content" }, [
+          _c("div", { staticClass: "text" }, [_vm._v("Existencia actual")]),
+          _vm._v(" "),
+          _c("div", { staticClass: "number" }, [
+            _c("small", [_vm._v(_vm._s(_vm.info.total_current_quantity))])
+          ])
+        ])
+      ])
+    ])
   ])
 }
 var staticRenderFns = [
@@ -38723,31 +38556,7 @@ var staticRenderFns = [
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
     return _c("div", { staticClass: "icon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("contacts")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "icon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("people")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "icon" }, [
       _c("i", { staticClass: "material-icons" }, [_vm._v("category")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "icon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("receipt")])
     ])
   },
   function() {
@@ -38763,55 +38572,7 @@ var staticRenderFns = [
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
     return _c("div", { staticClass: "icon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("local_shipping")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "icon" }, [
       _c("i", { staticClass: "material-icons" }, [_vm._v("bar_chart")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "icon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("payment")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "icon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("attach_money")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "icon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("money_off")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "icon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("payments")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "icon" }, [
-      _c("i", { staticClass: "material-icons" }, [_vm._v("money")])
     ])
   }
 ]

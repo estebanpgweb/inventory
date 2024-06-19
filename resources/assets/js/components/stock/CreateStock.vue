@@ -37,7 +37,7 @@
                     </span>
                     <div class="form-line">
                       <select class="form-control select2" v-model="stock.product" v-select="stock.product">
-                        <option value="">Selecciona un producto</option>
+                        <option value="">Selecciona una talla</option>
 
                         <option v-for="(value, index) in products" :value="value.id">{{ value.product_name }}</option>
                       </select>
@@ -72,7 +72,7 @@
                   </div>
                 </div>
 
-                <div class="col-md-6">
+                <!-- <div class="col-md-6">
                   <div class="input-group">
                     <span class="input-group-addon">
                       <i class="material-icons">attach_money</i>
@@ -82,9 +82,10 @@
                         v-model="stock.buying_price" />
                     </div>
                   </div>
-                </div>
+                </div> -->
 
-                <div class="col-md-6">
+
+                <!-- <div class="col-md-6">
                   <div class="input-group">
                     <span class="input-group-addon">
                       <i class="material-icons">attach_money</i>
@@ -94,7 +95,7 @@
                         v-model="stock.selling_price" />
                     </div>
                   </div>
-                </div>
+                </div> -->
 
                 <div class="col-md-6">
                   <div class="input-group">
@@ -148,8 +149,6 @@ export default {
         category: "",
         vendor: "",
         quantity: "",
-        buying_price: "",
-        selling_price: "",
         note: "",
       },
 
@@ -208,8 +207,6 @@ export default {
         product: "",
         vendor: "",
         quantity: "",
-        buying_price: "",
-        selling_price: "",
         note: "",
         category: "",
       };

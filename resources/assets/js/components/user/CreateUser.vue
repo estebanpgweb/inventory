@@ -6,7 +6,7 @@
 				<form @submit.prevent="createuser">
 					<div class="modal-content">
 						<div class="modal-header">
-							<h4 class="modal-title" id="defaultModalLabel">Usuario nuevo</h4>
+							<h4 class="modal-title" id="defaultModalLabel">Usuario nuevonpm </h4>
 						</div>
 						<div class="modal-body">
 							<div class="alert alert-danger" v-if="errors">

@@ -18,7 +18,7 @@
 			<div class="header">
 				<h2>
 					
-					Profit Report
+					Informe de ganacias
 					
 				</h2>
 
@@ -52,15 +52,15 @@
 							</tr>  	 			
 
 							<tr style="border: none !important;">
-								<td colspan="5" style="border: none !important;"><p style="text-align: center;font-weight: bold;">Profit Report from {{ date('j M Y',strtotime($start_date)) }} To {{ date('j M Y',strtotime($end_date)) }}</p></td>
+								<td colspan="5" style="border: none !important;"><p style="text-align: center;font-weight: bold;">Informe de Ganancias desde {{ date('j M Y',strtotime($start_date)) }} To {{ date('j M Y',strtotime($end_date)) }}</p></td>
 
 							</tr>
 							<tr>
-								<th>Product</th>
-								<th>Quantity</th>
-								<th>Total Selling Importe</th>
-								<th>Total Buying Importe</th>
-								<th>Profit</th>
+								<th>Producto</th>
+								<th>Cantidad</th>
+								<th>Importe Total de Ventas</th>
+								<th>Importe Total de Compras</th>
+								<th>Ganacia</th>
 							
 							</tr>
 						</thead>

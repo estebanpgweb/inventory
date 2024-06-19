@@ -8,7 +8,7 @@
 
 
 					<div class="modal-header">
-						<h4 class="modal-title" id="CreatePayment">Pagos de factura N° : {{ id }}  <br> Cliente : {{ invoice.customer.customer_name }} </h4>
+						<h4 class="modal-title" id="CreatePayment">Pagos nota de venta N° : {{ id }}  <br> Cliente : {{ invoice.customer.customer_name }} </h4>
 					</div>
 					<div class="modal-body">
 

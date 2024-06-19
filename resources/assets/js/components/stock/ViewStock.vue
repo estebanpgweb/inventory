@@ -10,7 +10,7 @@
         <div class="col-md-4">
           <select class="form-control select2" data-live-serach="true" @change="getProduct()" v-model="category"
             v-select="category">
-            <option value>Todas la categorías</option>
+            <option value>Todas las categorías</option>
 
             <option v-for="(cat, index) in categorys" :value="cat.id">{{ cat.name }}</option>
           </select>
@@ -42,13 +42,10 @@
           <thead>
             <tr>
               <th>Categoría</th>
-              <th>Producto</th>
-              <th>Proveedor</th>
+              <th>Talla</th>
               <th>Comprobante</th>
               <th>Existencia inicial</th>
               <th>Existencia actual</th>
-              <th>Precio de compra</th>
-              <th>Precio de venta</th>
               <th>Entrada por</th>
               <th>Fecha de entrada</th>
               <th>Agregar</th>
@@ -60,12 +57,9 @@
             <tr v-for="(value, index) in stocks.data">
               <td>{{ value.category.name }}</td>
               <td>{{ value.product.product_name }}</td>
-              <td>{{ value.vendor.name }}</td>
               <td>{{ value.chalan_no }}</td>
               <td>{{ value.stock_quantity }}</td>
               <td>{{ value.current_quantity }}</td>
-              <td>{{ value.buying_price }}</td>
-              <td>{{ value.selling_price }}</td>
               <td>{{ value.user.name }}</td>
               <td>{{ value.created_at | moment('LL') }}</td>
               <td>
@@ -155,10 +149,9 @@ export default {
           this.vendor
         )
         .then((response) => {
-          // console.log(response.data);
-
           this.stocks = response.data;
           this.isLoading = false;
+
         })
         .catch((error) => {
           console.log(error);

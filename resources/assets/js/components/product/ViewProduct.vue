@@ -13,7 +13,7 @@
             type="text"
             class="form-control"
             v-on:keyup="getData"
-            placeholder="Buscar por nombre"
+            placeholder="Buscar por talla"
             name
             v-model="name"
           />
@@ -30,7 +30,7 @@
           <thead>
             <tr>
               <th>Categoría</th>
-              <th>Nombre</th>
+              <th>Talla</th>
               <th>Detalles</th>
               <th>Editar</th>
               <th>Eliminar</th>
@@ -39,11 +39,12 @@
           <tbody>
             <tr v-for="(value,index) in products.data">
               <td>{{ value.category.name }}</td>
-              <td>{{ value.product_name }}</td>
               <td>
                 <div
-                  style="width: 650px; text-align: justify; height: 40px; white-space: normal; text-overflow: ellipsis; overflow: hidden;">{{ value.details }}</div>
+                  style="width: 100px; text-align: justify; height: 40px; white-space: normal; text-overflow: ellipsis; overflow: hidden;">{{ value.product_name }}</div>
               </td>
+              <td>{{ value.details }}</td>
+             
               <td>
                 <button
                   @click="editProduct(value.id)"

@@ -2,7 +2,7 @@
 
 @section('title','Inventory | Facturación')
 
-@section('page-title','Facturación')
+@section('page-title','Salidas')
 
 @section('content')
 
@@ -21,7 +21,7 @@
             
                 <h2 style="visibility: hidden;">
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#create-stock">
-                        Nueva factura
+                        Nueva nota de venta
                     </button>
                 </h2>
             </div>

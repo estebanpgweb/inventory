@@ -3,7 +3,7 @@
     <div v-show="invoice_state" class="card">
       <div class="header">
         <h2 class="pull-left">
-          Update Invoice
+          Modificar Nota de Venta
 
         </h2>
 
@@ -28,7 +28,7 @@
                 </span>
                 <div class="form-line">
                   <select class="form-control" v-model="invoice.customer_id">
-                    <option value="">Customer List</option>
+                    <option value="">Lista de clientes</option>
 
                     <option v-for="customer in customers" :value="customer.id">
                       {{ customer.customer_name }}
@@ -46,7 +46,7 @@
           <div class="row">
 
             <div class="col-md-4">
-              <p>Invoice Number</p>
+              <p>Nota de venta N°</p>
               <div class="input-group">
                 <span class="input-group-addon">
                   <i class="material-icons">person</i>
@@ -58,7 +58,7 @@
             </div>
 
             <div class="col-md-4">
-              <p>Invoice Date</p>
+              <p>Fecha nota de venta</p>
               <div class="input-group">
                 <span class="input-group-addon">
                   <i class="material-icons">person</i>
@@ -86,13 +86,13 @@
                 <thead class="bg-teal">
                   <tr>
                     <th>#</th>
-                    <th>Category</th>
-                    <th>Product</th>
+                    <th>Categoria</th>
+                    <th>Producto</th>
                     <th>Comprobante</th>
-                    <th>QTY</th>
-                    <th>Price</th>
-                    <th>Discount</th>
-                    <th>Dis Type</th>
+                    <th>Cantidad</th>
+                    <th>Pricio</th>
+                    <th>Descuento</th>
+                    <th>Tipo Descuento</th>
                     <th>Total</th>
                   </tr>
                 </thead>
@@ -107,7 +107,7 @@
                     </td>
                     <td>
                       <select class="form-control" v-model="invoice.product[index].category" @change="findProduct(index)">
-                        <option value="">Select Category</option>
+                        <option value="">Selecionar Categoria</option>
                         <option v-for="(value, index) in categorys" :value="value.id">{{ value.name }}</option>
 
                       </select>
@@ -117,7 +117,7 @@
 
                     <td>
                       <select class="form-control" v-model="invoice.product[index].product_id" @change="findStock(index)">
-                        <option value="">Select Product</option>
+                        <option value="">Selecionar Producto</option>
 
                         <option v-for="pr in vl.products" :value="pr.id">{{ pr.product_name }}</option>
 
@@ -204,7 +204,7 @@
 
             <div class="col-md-4">
               <div class="form-group">
-                <label>Total Price: &nbsp;</label>
+                <label>Total Pricio: &nbsp;</label>
                 <div class="input-group focused">
                   <div class="input-group-addon">$</div>
                   <!--                                   <input type="number" class="form-control" name="sub_total"  :value="invoice.total_amount = totalAmount + totalDiscount" placeholder="Subtotal" disabled=""> -->
@@ -214,7 +214,7 @@
 
 
               <div class="form-group">
-                <label>Total Discount: &nbsp;</label>
+                <label>Total Descuento: &nbsp;</label>
                 <div class="input-group focused">
                   <div class="input-group-addon">$</div>
                   <label>{{ invoice.total_disount = totalDiscount }}</label>
@@ -222,7 +222,7 @@
               </div>
 
               <div class="form-group">
-                <label>Net Payable Importe: &nbsp;</label>
+                <label>Importe neto a Pagar: &nbsp;</label>
                 <div class="input-group focused">
                   <div class="input-group-addon">$</div>
                   <label>{{ invoice.grand_total = totalAmount }}</label>
@@ -231,7 +231,7 @@
 
 
               <div class="form-group">
-                <label>Paid Importe: &nbsp;</label>
+                <label>Importe Pagado: &nbsp;</label>
                 <div class="input-group focused">
                   <div class="input-group-addon"></div>
 
@@ -243,7 +243,7 @@
 
 
               <div class="form-group">
-                <label>Due Importe</label>
+                <label>Importe Pendiente:</label>
                 <div class="input-group focused">
                   <div class="input-group-addon">$</div>
                   <label>{{ invoice.grand_total - invoice.paid_amount }}</label>

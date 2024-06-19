@@ -169,10 +169,9 @@ class InvoiceController extends Controller
            // invoice 
 
             $invoice = new Sell;
-
+            $invoice->branch_id = Auth::user()->branch_id;  
             $invoice->user_id = Auth::user()->id;  
             $invoice->customer_id = $customer_id;  
-            $invoice->branch_id = Auth::user()->branch_id;  
             $invoice->total_amount = $request->grand_total;  
             $invoice->discount_amount = $request->total_discount;  
             $invoice->paid_amount = $request->paid_amount;  

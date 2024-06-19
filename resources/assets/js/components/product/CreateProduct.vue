@@ -30,21 +30,23 @@
                   </div>
                 </div>
 
-                <div class="col-md-12">
-                  <div class="input-group">
-                    <span class="input-group-addon">
-                      <i class="material-icons">inventory</i>
-                    </span>
-                    <div class="form-line">
-                      <input type="text" class="form-control date" placeholder="Nombre" v-model="product.name" />
-                    </div>
-                  </div>
-                </div>
+               
 
                 <div class="col-md-12">
                   <div class="input-group">
                     <span class="input-group-addon">
                       <i class="material-icons">line_style</i>
+                    </span>
+                    <div class="form-line">
+                      <input type="text" class="form-control date" placeholder="Talla" v-model="product.name" />
+                    </div>
+                  </div>
+                </div>
+
+                 <div class="col-md-12">
+                  <div class="input-group">
+                    <span class="input-group-addon">
+                      <i class="material-icons">inventory</i>
                     </span>
                     <div class="form-line">
                       <input type="text" class="form-control date" placeholder="Detalles" v-model="product.details" />

@@ -39,7 +39,7 @@
                       <select class="form-control select2" v-model="stock.product" v-select="stock.product">
                         <option value>Selecciona un producto</option>
 
-                        <option v-for="(value, index) in products" :value="value.id">{{ value.product_name }}</option>
+                        <option v-for="(value, index) in products" :value="value.id">{{ value.details }}</option>
                       </select>
                     </div>
                   </div>
@@ -73,7 +73,7 @@
                   </div>
                 </div>
 
-                <div class="col-md-6">
+                <!-- <div class="col-md-6">
                   <div class="input-group">
                     <span class="input-group-addon">
                       <i class="material-icons">attach_money</i>
@@ -83,9 +83,9 @@
                         v-model="stock.buying_price" />
                     </div>
                   </div>
-                </div>
+                </div> -->
 
-                <div class="col-md-6">
+                <!-- <div class="col-md-6">
                   <div class="input-group">
                     <span class="input-group-addon">
                       <i class="material-icons">attach_money</i>
@@ -95,7 +95,7 @@
                         v-model="stock.selling_price" />
                     </div>
                   </div>
-                </div>
+                </div> -->
 
                 <div class="col-md-6">
                   <div class="input-group">
@@ -151,8 +151,6 @@ export default {
         vendor: "",
         quantity: "",
         current_quantity: "",
-        buying_price: "",
-        selling_price: "",
         note: "",
         chalan_no: "",
       },
@@ -189,8 +187,6 @@ export default {
           vendor: response.data.vendor_id,
           quantity: response.data.stock_quantity,
           current_quantity: response.data.current_quantity,
-          buying_price: response.data.buying_price,
-          selling_price: response.data.selling_price,
           note: response.data.note,
           chalan_no: response.data.chalan_no,
         };
@@ -242,8 +238,6 @@ export default {
         product: "",
         vendor: "",
         quantity: "",
-        buying_price: "",
-        selling_price: "",
         note: "",
         category: "",
       };

@@ -29,7 +29,7 @@ class DashboardController extends Controller
     {
 
         $total_invoice = Sell::count();
-        $total_customer = Customer::count();
+       
         $total_vendor = Vendor::count();
         $total_sold_amount = Sell::sum('total_amount');
         $total_paid_amount = Sell::sum('paid_amount');
@@ -46,7 +46,7 @@ class DashboardController extends Controller
         return response()->json([
 
             'total_invoice' => $total_invoice,
-            'total_customer' => $total_customer,
+           
             'total_vendor' => $total_vendor,
             'total_sold_amount' => round($total_sold_amount),
             'total_paid_amount' => round($total_paid_amount),

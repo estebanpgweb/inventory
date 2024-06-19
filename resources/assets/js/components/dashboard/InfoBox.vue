@@ -4,7 +4,7 @@
       <h1 style="text-align:center">Cargando......</h1>
     </div>
 
-    <div class="row clearfix" v-if="!isLoading">
+    <!-- <div class="row clearfix" v-if="!isLoading">
       <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-teal hover-zoom-effect">
           <div class="icon">
@@ -12,12 +12,12 @@
           </div>
           <div class="content">
             <div class="text">Clientes</div>
-            <div class="number">{{ info.total_customer }}</div>
+            <div class="number"></div>
           </div>
         </div>
-      </div>
+      </div> -->
 
-      <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+      <!-- <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-orange hover-zoom-effect">
           <div class="icon">
             <i class="material-icons">people</i>
@@ -27,7 +27,7 @@
             <div class="number">{{ info.total_vendor }}</div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-deep-purple hover-zoom-effect">
@@ -41,17 +41,7 @@
         </div>
       </div>
 
-      <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
-        <div class="info-box bg-blue-grey hover-zoom-effect">
-          <div class="icon">
-            <i class="material-icons">receipt</i>
-          </div>
-          <div class="content">
-            <div class="text">Facturas</div>
-            <div class="number">{{ info.total_invoice }}</div>
-          </div>
-        </div>
-      </div>
+
 
       <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-indigo hover-zoom-effect">
@@ -67,7 +57,7 @@
         </div>
       </div>
 
-      <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+      <!-- <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-pink hover-zoom-effect">
           <div class="icon">
             <i class="material-icons">local_shipping</i>
@@ -79,7 +69,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-blue hover-zoom-effect">
@@ -95,7 +85,7 @@
         </div>
       </div>
 
-      <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+      <!-- <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-deep-orange hover-zoom-effect">
           <div class="icon">
             <i class="material-icons">payment</i>
@@ -107,9 +97,9 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
 
-      <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+      <!-- <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-green hover-zoom-effect">
           <div class="icon">
             <i class="material-icons">attach_money</i>
@@ -121,9 +111,9 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
 
-      <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+      <!-- <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-red hover-zoom-effect">
           <div class="icon">
             <i class="material-icons">money_off</i>
@@ -135,9 +125,9 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
 
-      <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+      <!-- <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-brown hover-zoom-effect">
           <div class="icon">
             <i class="material-icons">payments</i>
@@ -149,9 +139,9 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
 
-      <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+      <!-- <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
         <div class="info-box bg-cyan hover-zoom-effect">
           <div class="icon">
             <i class="material-icons">money</i>
@@ -163,7 +153,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
